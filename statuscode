@@ -1,0 +1,327 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>WhatsApp Status</title>
+<style>
+  :root {
+    --green: #00a884;
+    --green-dark: #008069;
+    --bg: #f0f2f5;
+    --panel: #fff;
+    --text: #111b21;
+    --muted: #667781;
+    --line: #e9edef;
+    --ring-new: #25d366;
+    --ring-seen: #8696a0;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: "Segoe UI", Helvetica, Arial, sans-serif;
+    background: #d1d7db; height: 100vh; display: flex; align-items: center; justify-content: center; color: var(--text);
+  }
+  .app {
+    width: 100%; max-width: 1400px; height: 100vh; background: var(--panel);
+    display: grid; grid-template-columns: 380px 1fr; overflow: hidden;
+    box-shadow: 0 6px 18px rgba(11,20,26,.15);
+  }
+  @media (min-width: 1500px) { .app { height: calc(100vh - 40px); } }
+
+  /* ---------- Sidebar ---------- */
+  .side { border-right: 1px solid var(--line); display: flex; flex-direction: column; min-height: 0; }
+  .side-head {
+    height: 60px; background: var(--bg); padding: 0 16px; flex-shrink: 0;
+    display: flex; align-items: center; justify-content: space-between;
+  }
+  .side-title { font-size: 20px; font-weight: 600; }
+  .search { padding: 8px 12px; border-bottom: 1px solid var(--line); flex-shrink: 0; }
+  .search input {
+    width: 100%; height: 36px; border: 0; border-radius: 8px; background: var(--bg);
+    padding: 0 14px; font-size: 14px; color: var(--text);
+  }
+  .search input:focus { outline: 2px solid var(--green); }
+  .list { overflow-y: auto; flex: 1; }
+
+  .section-label { padding: 14px 16px 6px; font-size: 14px; color: var(--green-dark); font-weight: 600; }
+
+  .item { display: flex; gap: 14px; align-items: center; padding: 10px 16px; cursor: pointer; }
+  .item:hover { background: #f5f6f6; }
+  .ring {
+    width: 52px; height: 52px; border-radius: 50%; flex-shrink: 0; padding: 2px;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .ring.new { background: conic-gradient(var(--ring-new) 0 100%); }
+  .ring.seen { background: var(--ring-seen); }
+  .ring.mixed { background: conic-gradient(var(--ring-new) 0 50%, var(--ring-seen) 50% 100%); }
+  .ring.empty { background: var(--line); }
+  .avatar {
+    width: 100%; height: 100%; border-radius: 50%; border: 2px solid #fff;
+    display: flex; align-items: center; justify-content: center; color: #fff; font-weight: 600; font-size: 15px;
+  }
+  .plus {
+    position: relative; width: 100%; height: 100%; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center; color: #fff; font-weight: 600; font-size: 20px;
+  }
+  .plus-badge {
+    position: absolute; bottom: -2px; right: -2px; width: 18px; height: 18px; border-radius: 50%;
+    background: var(--green); color: #fff; font-size: 13px; display: flex; align-items: center; justify-content: center;
+    border: 2px solid #fff;
+  }
+  .info { flex: 1; min-width: 0; }
+  .info .name { font-size: 16px; font-weight: 500; }
+  .info .time { font-size: 13px; color: var(--muted); }
+
+  .empty-state { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; color: var(--muted); gap: 8px; padding: 20px; text-align: center; }
+
+  /* ---------- Viewer ---------- */
+  .viewer-wrap { background: #0b0f12; display: flex; align-items: center; justify-content: center; position: relative; }
+  .viewer-wrap.hidden { display: none; }
+  .viewer {
+    width: 380px; height: 100%; max-height: 100vh; position: relative; overflow: hidden;
+    background: #222; display: flex; flex-direction: column;
+  }
+  .bars { display: flex; gap: 4px; padding: 8px 10px 0; }
+  .bar { flex: 1; height: 3px; background: rgba(255,255,255,.3); border-radius: 2px; overflow: hidden; }
+  .bar-fill { height: 100%; width: 0%; background: #fff; }
+  .bar.done .bar-fill { width: 100%; transition: none; }
+  .bar.active .bar-fill { transition: width linear; }
+
+  .v-head { display: flex; align-items: center; gap: 10px; padding: 12px 10px; color: #fff; }
+  .v-head .avatar { width: 38px; height: 38px; font-size: 14px; }
+  .v-head .name { font-size: 15px; font-weight: 500; }
+  .v-head .time { font-size: 12px; color: #cfd4d6; }
+  .v-close { margin-left: auto; background: none; border: 0; color: #fff; font-size: 22px; cursor: pointer; }
+
+  .v-body {
+    flex: 1; display: flex; align-items: center; justify-content: center; position: relative;
+    font-size: 22px; color: #fff; text-align: center; padding: 30px; line-height: 1.5;
+  }
+  .tap-l, .tap-r { position: absolute; top: 0; bottom: 0; width: 30%; cursor: pointer; z-index: 2; }
+  .tap-l { left: 0; } .tap-r { right: 0; }
+
+  .v-foot { padding: 12px; display: flex; align-items: center; gap: 10px; }
+  .v-foot input {
+    flex: 1; height: 38px; border-radius: 20px; border: 1px solid #555; background: transparent;
+    color: #fff; padding: 0 16px; font-size: 14px;
+  }
+  .v-foot input::placeholder { color: #aaa; }
+  .v-foot input:focus { outline: 1px solid var(--green); }
+  .v-foot .heart { background: none; border: 0; color: #fff; font-size: 20px; cursor: pointer; }
+
+  .viewer-hint { color: var(--muted); font-size: 15px; }
+
+  @media (max-width: 800px) {
+    .app { grid-template-columns: 1fr; }
+    .side { display: block; }
+    .app.open .side { display: none; }
+    .viewer-wrap { display: none; }
+    .app.open .viewer-wrap { display: flex; }
+    .viewer { width: 100%; }
+  }
+</style>
+</head>
+<body>
+<div class="app" id="app">
+
+  <!-- Sidebar -->
+  <aside class="side">
+    <div class="side-head">
+      <span class="side-title">Status</span>
+      <div class="avatar" style="width:36px;height:36px;background:#00a884">Me</div>
+    </div>
+    <div class="search"><input id="search" type="text" placeholder="Search"></div>
+
+    <div class="list" id="list"></div>
+  </aside>
+
+  <!-- Viewer -->
+  <section class="viewer-wrap hidden" id="viewerWrap">
+    <div class="viewer">
+      <div class="bars" id="bars"></div>
+      <div class="v-head">
+        <div class="avatar" id="vAvatar"></div>
+        <div>
+          <div class="name" id="vName"></div>
+          <div class="time" id="vTime"></div>
+        </div>
+        <button class="v-close" id="vClose" aria-label="Close">✕</button>
+      </div>
+      <div class="v-body" id="vBody">
+        <div class="tap-l" id="tapL"></div>
+        <div class="tap-r" id="tapR"></div>
+        <span id="vText"></span>
+      </div>
+      <div class="v-foot">
+        <input type="text" placeholder="Reply..." id="vReply">
+        <button class="heart" id="vHeart" aria-label="Like">🤍</button>
+      </div>
+    </div>
+  </section>
+  <div class="viewer-wrap" id="viewerHint"><div class="viewer-hint">Click a status to view it</div></div>
+</div>
+
+<script>
+  const colors = ['#7e57c2', '#e91e63', '#ff9800', '#009688', '#3f51b5', '#795548', '#c2185b'];
+
+  const myStatus = { id: 0, name: 'My status', time: 'Tap to add status update', mine: true, updates: [] };
+
+  const contacts = [
+    { id: 1, name: 'Rahul', seen: false, updates: [
+      { text: 'On a road trip 🚗🏞️', time: '2 hours ago', bg: '#005c4b' },
+      { text: 'Best sunset ever 🌅', time: '1 hour ago', bg: '#3b4a54' } ] },
+    { id: 2, name: 'Priya', seen: false, updates: [
+      { text: 'New job, new beginnings! 🎉', time: '5 hours ago', bg: '#7e57c2' } ] },
+    { id: 3, name: 'Sneha', seen: true, updates: [
+      { text: 'Coffee first ☕', time: 'Yesterday, 9:14 PM', bg: '#009688' } ] },
+    { id: 4, name: 'Rohit', seen: false, updates: [
+      { text: 'Match day! 🏏', time: '30 minutes ago', bg: '#c2185b' },
+      { text: 'What a game 🔥', time: '10 minutes ago', bg: '#00695c' } ] },
+    { id: 5, name: 'Ananya', seen: true, updates: [
+      { text: 'Weekend vibes', time: '2 days ago', bg: '#3f51b5' } ] }
+  ];
+
+  const $ = id => document.getElementById(id);
+  const list = $('list');
+  const initials = n => n.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase();
+  const esc = s => s.replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+
+  function ringClass(c) {
+    if (!c.updates.length) return 'empty';
+    return c.seen ? 'seen' : 'new';
+  }
+
+  function renderList(filter = '') {
+    list.innerHTML = '';
+
+    // My status
+    const label1 = document.createElement('div');
+    label1.className = 'section-label'; label1.textContent = 'My status';
+    list.appendChild(label1);
+
+    const mine = document.createElement('div');
+    mine.className = 'item';
+    mine.innerHTML = `
+      <div class="ring empty">
+        <div class="plus" style="background:#00a884">Me<span class="plus-badge">+</span></div>
+      </div>
+      <div class="info"><div class="name">My status</div><div class="time">${myStatus.updates.length ? myStatus.updates.length + ' update(s)' : 'Tap to add status update'}</div></div>`;
+    mine.onclick = () => myStatus.updates.length ? openViewer(myStatus) : addMyStatus();
+    list.appendChild(mine);
+
+    const filtered = contacts.filter(c => c.name.toLowerCase().includes(filter.toLowerCase()));
+    if (filtered.length) {
+      const label2 = document.createElement('div');
+      label2.className = 'section-label'; label2.textContent = 'Recent updates';
+      list.appendChild(label2);
+
+      filtered.forEach(c => {
+        const el = document.createElement('div');
+        el.className = 'item';
+        el.innerHTML = `
+          <div class="ring ${ringClass(c)}">
+            <div class="avatar" style="background:${colors[c.id % colors.length]}">${initials(c.name)}</div>
+          </div>
+          <div class="info"><div class="name">${esc(c.name)}</div><div class="time">${c.updates[c.updates.length - 1].time}</div></div>`;
+        el.onclick = () => openViewer(c);
+        list.appendChild(el);
+      });
+    }
+  }
+
+  function addMyStatus() {
+    const text = prompt('Type your status text:');
+    if (!text) return;
+    myStatus.updates.push({ text, time: 'Just now', bg: colors[Math.floor(Math.random() * colors.length)] });
+    renderList($('search').value);
+    openViewer(myStatus);
+  }
+
+  // ---------- Viewer ----------
+  let activeContact = null, idx = 0, timer = null;
+  const DURATION = 4000;
+
+  function openViewer(contact) {
+    activeContact = contact; idx = 0;
+    contact.seen = true;
+    $('app').classList.add('open');
+    $('viewerHint').style.display = 'none';
+    $('viewerWrap').classList.remove('hidden');
+    $('vAvatar').textContent = contact.mine ? 'Me' : initials(contact.name);
+    $('vAvatar').style.background = contact.mine ? '#00a884' : colors[contact.id % colors.length];
+    $('vName').textContent = contact.name;
+    buildBars();
+    showSlide();
+    renderList($('search').value);
+  }
+
+  function buildBars() {
+    const bars = $('bars');
+    bars.innerHTML = '';
+    activeContact.updates.forEach(() => {
+      const b = document.createElement('div');
+      b.className = 'bar';
+      b.innerHTML = '<div class="bar-fill"></div>';
+      bars.appendChild(b);
+    });
+  }
+
+  function showSlide() {
+    clearTimeout(timer);
+    const update = activeContact.updates[idx];
+    $('vText').textContent = update.text;
+    $('vBody').style.background = update.bg;
+    $('vTime').textContent = update.time;
+    $('vHeart').textContent = '🤍';
+
+    const bars = [...$('bars').children];
+    bars.forEach((b, i) => {
+      b.classList.remove('active', 'done');
+      const fill = b.querySelector('.bar-fill');
+      fill.style.transition = 'none';
+      fill.style.width = i < idx ? '100%' : '0%';
+    });
+    const cur = bars[idx];
+    cur.classList.add('active');
+    requestAnimationFrame(() => {
+      const fill = cur.querySelector('.bar-fill');
+      fill.style.transition = `width ${DURATION}ms linear`;
+      fill.style.width = '100%';
+    });
+    timer = setTimeout(next, DURATION);
+  }
+
+  function next() {
+    if (idx < activeContact.updates.length - 1) { idx++; showSlide(); }
+    else closeViewer();
+  }
+  function prev() {
+    if (idx > 0) { idx--; showSlide(); }
+  }
+  function closeViewer() {
+    clearTimeout(timer);
+    $('viewerWrap').classList.add('hidden');
+    $('viewerHint').style.display = 'flex';
+    $('app').classList.remove('open');
+    activeContact = null;
+  }
+
+  $('tapR').onclick = next;
+  $('tapL').onclick = prev;
+  $('vClose').onclick = closeViewer;
+  $('vHeart').onclick = () => { $('vHeart').textContent = $('vHeart').textContent === '🤍' ? '❤️' : '🤍'; };
+  $('vReply').addEventListener('focus', () => clearTimeout(timer));
+  $('vReply').addEventListener('blur', () => { if (activeContact) timer = setTimeout(next, DURATION); });
+  $('search').addEventListener('input', e => renderList(e.target.value));
+  document.addEventListener('keydown', e => {
+    if (!activeContact) return;
+    if (e.key === 'ArrowRight') next();
+    if (e.key === 'ArrowLeft') prev();
+    if (e.key === 'Escape') closeViewer();
+  });
+
+  renderList();
+</script>
+</body>
+</html>
