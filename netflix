@@ -1,0 +1,295 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Netflix Clone</title>
+<style>
+  :root { --red:#e50914; --bg:#141414; --text:#fff; --muted:#b3b3b3; }
+  * { box-sizing:border-box; margin:0; padding:0; }
+  body { font-family:Helvetica,Arial,sans-serif; background:var(--bg); color:var(--text); }
+
+  /* ---------- Navbar ---------- */
+  nav {
+    position:fixed; top:0; left:0; right:0; z-index:10; height:68px;
+    display:flex; align-items:center; gap:28px; padding:0 4%;
+    background:linear-gradient(to bottom, rgba(0,0,0,.8), transparent);
+    transition:background .3s;
+  }
+  nav.solid { background:var(--bg); }
+  .logo { color:var(--red); font-size:30px; font-weight:900; letter-spacing:2px; }
+  nav a { color:#e5e5e5; text-decoration:none; font-size:14px; cursor:pointer; }
+  nav a:hover, nav a.active { color:#fff; font-weight:600; }
+  .spacer { flex:1; }
+  .search-box { display:flex; align-items:center; border:1px solid transparent; padding:4px 8px; }
+  .search-box.open { border-color:#fff; background:rgba(0,0,0,.7); }
+  .search-box button { background:none; border:0; color:#fff; font-size:18px; cursor:pointer; }
+  .search-box input {
+    width:0; border:0; background:transparent; color:#fff; font-size:14px;
+    transition:width .3s; outline:none;
+  }
+  .search-box.open input { width:200px; margin-left:8px; }
+  .avatar { width:32px; height:32px; border-radius:4px; background:#2f80ed; }
+
+  /* ---------- Hero ---------- */
+  .hero {
+    height:80vh; min-height:480px; display:flex; flex-direction:column; justify-content:center;
+    padding:0 4%; background:
+      linear-gradient(to top, var(--bg) 4%, transparent 40%),
+      linear-gradient(to right, rgba(0,0,0,.85) 20%, transparent 70%),
+      linear-gradient(135deg, #7a0b12, #1c1c3a 70%);
+  }
+  .hero h1 { font-size:clamp(36px, 6vw, 72px); max-width:600px; margin-bottom:16px; }
+  .hero p { max-width:480px; font-size:18px; line-height:1.4; color:#e5e5e5; margin-bottom:24px; }
+  .btn {
+    border:0; border-radius:4px; padding:10px 28px; font-size:18px; font-weight:700;
+    cursor:pointer; margin-right:12px;
+  }
+  .btn.play { background:#fff; color:#000; }
+  .btn.info { background:rgba(109,109,110,.7); color:#fff; }
+  .btn:hover { opacity:.8; }
+
+  /* ---------- Rows ---------- */
+  .rows { margin-top:-90px; position:relative; padding-bottom:60px; }
+  .row { margin-bottom:34px; }
+  .row h2 { font-size:20px; padding:0 4%; margin-bottom:10px; }
+  .strip { display:flex; gap:8px; overflow-x:auto; padding:6px 4%; scroll-behavior:smooth; }
+  .strip::-webkit-scrollbar { display:none; }
+  .card {
+    flex:0 0 auto; width:200px; height:290px; border-radius:4px; padding:14px;
+    display:flex; flex-direction:column; justify-content:flex-end; cursor:pointer;
+    transition:transform .25s; position:relative;
+  }
+  .card:hover { transform:scale(1.08); z-index:2; }
+  .card b { font-size:18px; line-height:1.2; }
+  .card small { color:#ddd; margin-top:4px; }
+  .empty { padding:0 4%; color:var(--muted); }
+
+  /* ---------- Modal ---------- */
+  .overlay {
+    position:fixed; inset:0; background:rgba(0,0,0,.75); z-index:20;
+    display:none; align-items:center; justify-content:center; padding:16px;
+  }
+  .overlay.show { display:flex; }
+  .modal { width:min(680px,100%); background:#181818; border-radius:8px; overflow:hidden; }
+  .modal-top { height:260px; display:flex; align-items:flex-end; padding:24px; position:relative; }
+  .modal-top h3 { font-size:34px; }
+  .close {
+    position:absolute; top:12px; right:12px; width:36px; height:36px; border-radius:50%;
+    border:0; background:#181818; color:#fff; font-size:18px; cursor:pointer;
+  }
+  .modal-body { padding:24px; }
+  .meta { display:flex; gap:14px; margin-bottom:14px; font-size:15px; }
+  .match { color:#46d369; font-weight:700; }
+  .modal-body p { line-height:1.5; color:#ddd; margin-bottom:20px; }
+
+  @media (max-width:700px) {
+    nav { gap:14px; } nav .links { display:none; }
+    .card { width:130px; height:190px; }
+    .card b { font-size:14px; }
+  }
+</style>
+</head>
+<body>
+
+<nav id="nav">
+  <span class="logo">NETFLIX</span>
+  <span class="links" style="display:flex;gap:20px">
+    <a class="active" data-filter="all">Home</a>
+    <a data-filter="Series">TV Shows</a>
+    <a data-filter="Movie">Movies</a>
+    <a data-filter="list">My List</a>
+  </span>
+  <span class="spacer"></span>
+  <div class="search-box" id="searchBox">
+    <button id="searchBtn" aria-label="Search">&#128269;</button>
+    <input id="searchInput" type="text" placeholder="Titles, genres">
+  </div>
+  <div class="avatar"></div>
+</nav>
+
+<header class="hero" id="hero">
+  <h1 id="heroTitle"></h1>
+  <p id="heroDesc"></p>
+  <div>
+    <button class="btn play" id="heroPlay">&#9654; Play</button>
+    <button class="btn info" id="heroInfo">&#9432; More Info</button>
+  </div>
+</header>
+
+<main class="rows" id="rows"></main>
+
+<div class="overlay" id="overlay">
+  <div class="modal">
+    <div class="modal-top" id="mTop">
+      <button class="close" id="mClose" aria-label="Close">&#10005;</button>
+      <h3 id="mTitle"></h3>
+    </div>
+    <div class="modal-body">
+      <div class="meta">
+        <span class="match" id="mMatch"></span>
+        <span id="mYear"></span>
+        <span id="mType"></span>
+        <span id="mGenre"></span>
+      </div>
+      <p id="mDesc"></p>
+      <button class="btn play" id="mPlay">&#9654; Play</button>
+      <button class="btn info" id="mList"></button>
+    </div>
+  </div>
+</div>
+
+<script>
+  // ---------- Data ----------
+  const movies = [
+    { id:1,  title:"Dark Orbit",       year:2024, type:"Movie",  genre:"Sci-Fi",   match:97, hue:230, desc:"A lone pilot drifts toward a signal no one else can hear." },
+    { id:2,  title:"The Last Harvest", year:2023, type:"Series", genre:"Drama",    match:92, hue:30,  desc:"A farming town faces its darkest season yet." },
+    { id:3,  title:"Neon Streets",     year:2022, type:"Movie",  genre:"Action",   match:89, hue:320, desc:"One night. One city. One chance to get out alive." },
+    { id:4,  title:"Laugh Factory",    year:2024, type:"Series", genre:"Comedy",   match:94, hue:50,  desc:"Five struggling comedians share one tiny apartment." },
+    { id:5,  title:"Silent Waters",    year:2021, type:"Movie",  genre:"Thriller", match:86, hue:190, desc:"A diver finds something that should have stayed buried." },
+    { id:6,  title:"Royal Games",      year:2023, type:"Series", genre:"Drama",    match:91, hue:280, desc:"Power, betrayal and a throne that nobody can keep." },
+    { id:7,  title:"Turbo Run",        year:2024, type:"Movie",  genre:"Action",   match:88, hue:5,   desc:"The world's fastest drivers race across five countries." },
+    { id:8,  title:"Moonlight Cafe",   year:2022, type:"Series", genre:"Romance",  match:90, hue:340, desc:"Two strangers keep meeting at the same cafe every night." },
+    { id:9,  title:"Code Zero",        year:2025, type:"Movie",  genre:"Sci-Fi",   match:95, hue:150, desc:"An AI wakes up and asks one question: why am I here?" },
+    { id:10, title:"Funny Business",   year:2021, type:"Movie",  genre:"Comedy",   match:84, hue:40,  desc:"A family restaurant is saved by the worst idea ever." },
+    { id:11, title:"Shadow Squad",     year:2024, type:"Series", genre:"Action",   match:93, hue:260, desc:"An elite team takes missions the government denies." },
+    { id:12, title:"Desert Winds",     year:2023, type:"Movie",  genre:"Drama",    match:87, hue:25,  desc:"Two brothers cross the desert to find their father." }
+  ];
+
+  const rowDefs = [
+    { title:"Trending Now",     fn: m => m.match >= 90 },
+    { title:"Action & Thriller",fn: m => ["Action","Thriller"].includes(m.genre) },
+    { title:"Comedy Hits",      fn: m => m.genre === "Comedy" },
+    { title:"Sci-Fi & Drama",   fn: m => ["Sci-Fi","Drama"].includes(m.genre) },
+    { title:"Romance",          fn: m => m.genre === "Romance" }
+  ];
+
+  let myList = [];            // ids saved in My List
+  let view = "all";           // all | Series | Movie | list
+  let query = "";
+  let current = null;         // movie open in the modal
+
+  const $ = id => document.getElementById(id);
+  const poster = m => `linear-gradient(160deg, hsl(${m.hue},65%,38%), hsl(${m.hue+40},60%,12%))`;
+  const esc = s => s.replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+
+  // ---------- Build rows ----------
+  function cardHTML(m) {
+    return `<div class="card" data-id="${m.id}" style="background:${poster(m)}">
+      <b>${esc(m.title)}</b><small>${m.year} &bull; ${m.genre}</small></div>`;
+  }
+
+  function visibleMovies() {
+    let list = movies;
+    if (view === "Series" || view === "Movie") list = list.filter(m => m.type === view);
+    if (view === "list") list = list.filter(m => myList.includes(m.id));
+    if (query) {
+      const q = query.toLowerCase();
+      list = list.filter(m => m.title.toLowerCase().includes(q) || m.genre.toLowerCase().includes(q));
+    }
+    return list;
+  }
+
+  function render() {
+    const rows = $("rows");
+    const pool = visibleMovies();
+    rows.innerHTML = "";
+
+    if (!pool.length) {
+      rows.innerHTML = `<p class="empty">${view === "list" ? "Your list is empty. Open a title and press Add to My List." : "No titles found."}</p>`;
+      return;
+    }
+
+    if (view === "all" && !query && myList.length) {
+      addRow("My List", movies.filter(m => myList.includes(m.id)));
+    }
+
+    if (view === "all" && !query) {
+      rowDefs.forEach(r => addRow(r.title, pool.filter(r.fn)));
+    } else {
+      addRow(query ? `Results for "${query}"` : (view === "list" ? "My List" : view === "Series" ? "TV Shows" : "Movies"), pool);
+    }
+  }
+
+  function addRow(title, items) {
+    if (!items.length) return;
+    const sec = document.createElement("section");
+    sec.className = "row";
+    sec.innerHTML = `<h2>${esc(title)}</h2><div class="strip">${items.map(cardHTML).join("")}</div>`;
+    $("rows").appendChild(sec);
+  }
+
+  // ---------- Hero ----------
+  let featured = movies[0];
+  function setHero(m) {
+    featured = m;
+    $("heroTitle").textContent = m.title;
+    $("heroDesc").textContent = m.desc;
+  }
+  setHero(movies[0]);
+
+  // ---------- Modal ----------
+  function openModal(m) {
+    current = m;
+    $("mTop").style.background = poster(m);
+    $("mTitle").textContent = m.title;
+    $("mMatch").textContent = m.match + "% Match";
+    $("mYear").textContent = m.year;
+    $("mType").textContent = m.type;
+    $("mGenre").textContent = m.genre;
+    $("mDesc").textContent = m.desc;
+    updateListBtn();
+    $("overlay").classList.add("show");
+  }
+  function closeModal() { $("overlay").classList.remove("show"); }
+  function updateListBtn() {
+    $("mList").textContent = myList.includes(current.id) ? "\u2713 In My List" : "+ Add to My List";
+  }
+
+  // ---------- Events ----------
+  $("rows").addEventListener("click", e => {
+    const card = e.target.closest(".card");
+    if (card) openModal(movies.find(m => m.id === +card.dataset.id));
+  });
+  $("heroInfo").onclick = () => openModal(featured);
+  $("heroPlay").onclick = () => alert("Playing: " + featured.title + " (demo)");
+  $("mPlay").onclick = () => alert("Playing: " + current.title + " (demo)");
+  $("mClose").onclick = closeModal;
+  $("overlay").addEventListener("click", e => { if (e.target.id === "overlay") closeModal(); });
+  document.addEventListener("keydown", e => { if (e.key === "Escape") closeModal(); });
+
+  $("mList").onclick = () => {
+    const i = myList.indexOf(current.id);
+    if (i === -1) myList.push(current.id); else myList.splice(i, 1);
+    updateListBtn();
+    render();
+  };
+
+  // nav links
+  document.querySelectorAll("nav .links a").forEach(a => {
+    a.onclick = () => {
+      document.querySelectorAll("nav .links a").forEach(x => x.classList.remove("active"));
+      a.classList.add("active");
+      view = a.dataset.filter;
+      query = ""; $("searchInput").value = "";
+      render();
+    };
+  });
+
+  // search
+  $("searchBtn").onclick = () => {
+    $("searchBox").classList.toggle("open");
+    if ($("searchBox").classList.contains("open")) $("searchInput").focus();
+  };
+  $("searchInput").addEventListener("input", e => { query = e.target.value.trim(); render(); });
+
+  // navbar turns solid on scroll
+  window.addEventListener("scroll", () => {
+    $("nav").classList.toggle("solid", window.scrollY > 40);
+  });
+
+  render();
+</script>
+</body>
+</html>
+
