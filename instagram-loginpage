@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Instagram</title>
+<style>
+  :root {
+    --blue: #0095f6;
+    --blue-dark: #1877f2;
+    --btn-off: #b2dffc;
+    --border: #dbdbdb;
+    --bg: #fafafa;
+    --text: #262626;
+    --muted: #737373;
+    --err: #ed4956;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    background: var(--bg); color: var(--text);
+    min-height: 100vh; display: flex; flex-direction: column;
+  }
+  .page {
+    flex: 1; display: flex; align-items: center; justify-content: center;
+    gap: 32px; padding: 32px 16px;
+  }
+
+  /* ---------- Phone mockup ---------- */
+  .phone {
+    width: 380px; height: 580px; border-radius: 36px; padding: 14px;
+    background: #111; box-shadow: 0 10px 30px rgba(0,0,0,.2); flex-shrink: 0;
+  }
+  .screen {
+    width: 100%; height: 100%; border-radius: 24px; overflow: hidden; position: relative;
+    background: linear-gradient(160deg, #feda75, #fa7e1e 25%, #d62976 55%, #962fbf 78%, #4f5bd5);
+  }
+  .screen::after {
+    content: "Instagram"; position: absolute; inset: 0;
+    display: flex; align-items: center; justify-content: center;
+    font-family: "Brush Script MT", "Segoe Script", cursive; font-size: 54px; color: #fff;
+    text-shadow: 0 2px 8px rgba(0,0,0,.25);
+  }
+
+  /* ---------- Cards ---------- */
+  .right { width: 350px; max-width: 100%; }
+  .card {
+    background: #fff; border: 1px solid var(--border); border-radius: 1px;
+    padding: 10px 40px 24px; margin-bottom: 10px; text-align: center;
+  }
+  .logo {
+    font-family: "Brush Script MT", "Segoe Script", "Lucida Handwriting", cursive;
+    font-size: 52px; margin: 36px 0 26px; color: var(--text);
+  }
+  .field { position: relative; margin-bottom: 6px; }
+  .field input {
+    width: 100%; height: 38px; padding: 14px 8px 2px; font-size: 14px;
+    border: 1px solid var(--border); border-radius: 3px; background: var(--bg); color: var(--text);
+  }
+  .field input:focus { outline: none; border-color: #a8a8a8; }
+  .field label {
+    position: absolute; left: 8px; top: 10px; font-size: 12px; color: var(--muted);
+    pointer-events: none; transition: all .1s;
+  }
+  .field input:focus + label,
+  .field input:not(:placeholder-shown) + label { top: 3px; font-size: 10px; }
+  .toggle {
+    position: absolute; right: 8px; top: 9px; background: none; border: 0;
+    font-size: 13px; font-weight: 600; cursor: pointer; display: none; color: var(--text);
+  }
+  .field.has-text .toggle { display: block; }
+
+  .login-btn {
+    width: 100%; height: 32px; margin-top: 12px; border: 0; border-radius: 8px;
+    background: var(--blue); color: #fff; font-size: 14px; font-weight: 600; cursor: pointer;
+  }
+  .login-btn:disabled { background: var(--btn-off); cursor: default; }
+  .login-btn:not(:disabled):hover { background: #1877f2; }
+
+  .or { display: flex; align-items: center; gap: 18px; margin: 18px 0; }
+  .or::before, .or::after { content: ""; flex: 1; height: 1px; background: var(--border); }
+  .or span { font-size: 13px; font-weight: 600; color: var(--muted); }
+
+  .fb {
+    background: none; border: 0; color: #385185; font-size: 14px; font-weight: 600; cursor: pointer;
+    display: inline-flex; align-items: center; gap: 8px;
+  }
+  .fb svg { width: 16px; height: 16px; fill: #385185; }
+  .error { color: var(--err); font-size: 14px; margin-top: 16px; line-height: 18px; min-height: 18px; }
+  .forgot { display: block; margin-top: 14px; font-size: 12px; color: #00376b; text-decoration: none; }
+  .forgot:hover, .signup a:hover { text-decoration: underline; }
+
+  .signup { padding: 20px; font-size: 14px; }
+  .signup a { color: var(--blue); font-weight: 600; text-decoration: none; }
+
+  .get-app { text-align: center; margin: 14px 0; font-size: 14px; }
+  .badges { display: flex; justify-content: center; gap: 8px; margin-top: 16px; }
+  .badge {
+    background: #000; color: #fff; border-radius: 6px; padding: 6px 14px; font-size: 12px;
+    line-height: 1.2; text-align: left; cursor: pointer; min-width: 130px;
+  }
+  .badge small { display: block; font-size: 9px; opacity: .8; }
+  .badge b { font-size: 15px; }
+
+  footer { text-align: center; padding: 24px 16px 40px; font-size: 12px; color: var(--muted); }
+  footer nav { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px 16px; margin-bottom: 16px; }
+  footer a { color: var(--muted); text-decoration: none; }
+  footer a:hover { text-decoration: underline; }
+
+  button:focus-visible, a:focus-visible { outline: 2px solid var(--blue); outline-offset: 2px; }
+
+  @media (max-width: 880px) {
+    .phone { display: none; }
+    .card { border: 0; background: transparent; }
+    .signup { border: 1px solid var(--border); background: #fff; }
+  }
+</style>
+</head>
+<body>
+
+<div class="page">
+  <div class="phone"><div class="screen"></div></div>
+
+  <div class="right">
+    <div class="card">
+      <h1 class="logo">Instagram</h1>
+
+      <form id="form" novalidate>
+        <div class="field">
+          <input type="text" id="user" placeholder=" " autocomplete="username">
+          <label for="user">Phone number, username, or email</label>
+        </div>
+        <div class="field" id="passField">
+          <input type="password" id="pass" placeholder=" " autocomplete="current-password">
+          <label for="pass">Password</label>
+          <button type="button" class="toggle" id="toggle">Show</button>
+        </div>
+
+        <button type="submit" class="login-btn" id="loginBtn" disabled>Log in</button>
+      </form>
+
+      <div class="or"><span>OR</span></div>
+
+      <button class="fb" id="fb" type="button">
+        <svg viewBox="0 0 24 24"><path d="M22 12a10 10 0 1 0-11.6 9.9v-7H7.9V12h2.5V9.8c0-2.5 1.5-3.9 3.8-3.9 1.1 0 2.2.2 2.2.2v2.5h-1.3c-1.2 0-1.6.8-1.6 1.6V12h2.8l-.4 2.9h-2.3v7A10 10 0 0 0 22 12z"/></svg>
+        Log in with Facebook
+      </button>
+
+      <p class="error" id="error" role="alert"></p>
+      <a href="#" class="forgot" id="forgot">Forgot password?</a>
+    </div>
+
+    <div class="card signup">
+      Don't have an account? <a href="#" id="signup">Sign up</a>
+    </div>
+
+    <p class="get-app">Get the app.</p>
+    <div class="badges">
+      <div class="badge"><small>GET IT ON</small><b>Google Play</b></div>
+      <div class="badge"><small>Download on the</small><b>App Store</b></div>
+    </div>
+  </div>
+</div>
+
+<footer>
+  <nav>
+    <a href="#">Meta</a><a href="#">About</a><a href="#">Blog</a><a href="#">Jobs</a>
+    <a href="#">Help</a><a href="#">API</a><a href="#">Privacy</a><a href="#">Terms</a>
+    <a href="#">Locations</a><a href="#">Instagram Lite</a>
+  </nav>
+  <span>English &nbsp;&bull;&nbsp; &copy; 2026 Instagram from Meta</span>
+</footer>
+
+<script>
+  const user = document.getElementById('user');
+  const pass = document.getElementById('pass');
+  const btn = document.getElementById('loginBtn');
+  const toggle = document.getElementById('toggle');
+  const passField = document.getElementById('passField');
+  const error = document.getElementById('error');
+
+  // Enable button only when username is filled and password has 6+ characters
+  function check() {
+    btn.disabled = !(user.value.trim().length > 0 && pass.value.length >= 6);
+    passField.classList.toggle('has-text', pass.value.length > 0);
+    error.textContent = '';
+  }
+  user.addEventListener('input', check);
+  pass.addEventListener('input', check);
+
+  // Show / hide password
+  toggle.addEventListener('click', () => {
+    const hidden = pass.type === 'password';
+    pass.type = hidden ? 'text' : 'password';
+    toggle.textContent = hidden ? 'Hide' : 'Show';
+    pass.focus();
+  });
+
+  // Submit (demo only, no real login)
+  document.getElementById('form').addEventListener('submit', e => {
+    e.preventDefault();
+    if (btn.disabled) return;
+    btn.disabled = true;
+    btn.textContent = 'Logging in...';
+    setTimeout(() => {
+      btn.textContent = 'Log in';
+      btn.disabled = false;
+      error.textContent = "Sorry, your password was incorrect. Please double-check your password.";
+    }, 1200);
+  });
+
+  // Other links (demo)
+  document.getElementById('fb').onclick = () => alert('Facebook login (demo only)');
+  document.getElementById('forgot').onclick = e => { e.preventDefault(); alert('Password reset (demo only)'); };
+  document.getElementById('signup').onclick = e => { e.preventDefault(); alert('Sign up page (demo only)'); };
+</script>
+</body>
+</html>
